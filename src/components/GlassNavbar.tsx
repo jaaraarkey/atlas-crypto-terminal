@@ -1,3 +1,16 @@
+/**
+ * @file GlassNavbar.tsx
+ * @description Top-level navigation bar with glassmorphism styling.
+ *
+ * Renders the ATLAS logo, primary navigation links (Dashboard, Screener),
+ * and a dark/light theme toggle button. The navbar uses the `.glass-panel`
+ * utility for the frosted-glass backdrop effect and sticks to the top of
+ * the viewport for persistent access.
+ *
+ * The theme toggle renders a Sun icon in dark mode (to switch to light)
+ * and a Moon icon in light mode (to switch to dark).
+ */
+
 import { useTheme } from '../context/ThemeContext';
 import { Moon, Sun, Activity } from 'lucide-react';
 import { Link } from 'react-router-dom';

@@ -1,3 +1,18 @@
+/**
+ * @file App.tsx
+ * @description Root application component — defines routing and page layout.
+ *
+ * Route map:
+ *   `/`               → HomeDashboard (watchlist cards + CoinGecko rankings table)
+ *   `/trade/:symbol`  → SymbolDetails  (candlestick chart + orderbook)
+ *   `/screener`       → ScreenerView   (condition-based market scanner)
+ *
+ * Layout structure:
+ *   - A subtle ambient glow orb is positioned behind the content for depth.
+ *   - `<GlassNavbar>` sticks to the top of the viewport.
+ *   - `<main>` is capped at `max-w-screen-2xl` and centers content.
+ */
+
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { GlassNavbar } from './components/GlassNavbar';
 import { useWatchlist } from './context/WatchlistContext';
@@ -7,6 +22,16 @@ import { CoinDashboard } from './components/CoinDashboard';
 import { SymbolDetails } from './components/SymbolDetails';
 import { ScreenerView } from './components/ScreenerView';
 
+/**
+ * HomeDashboard — the landing page.
+ *
+ * Renders the user's watchlist as a responsive card grid, each card
+ * streaming live prices from the global Binance WebSocket. Below the
+ * cards sits the `<CoinDashboard>` table powered by CoinGecko REST data.
+ *
+ * A pulsating green dot in the header indicates the WebSocket connection
+ * health (`"Open"` / `"Closed"`).
+ */
 function HomeDashboard() {
   const { watchlist } = useWatchlist();
   const { tickers, connectionStatus } = useLivePrice();

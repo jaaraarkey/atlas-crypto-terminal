@@ -1,13 +1,30 @@
+/**
+ * @file LiveTickerCard.tsx
+ * @description Compact card widget displaying a single asset's live price data.
+ *
+ * Consumed by the Home dashboard inside a responsive grid. Each card:
+ *   - Shows the asset name, current price, 24 h % change, and 24 h volume.
+ *   - Auto-formats price decimals (2 dp for $1+, up to 6 dp for sub-dollar).
+ *   - Links to the full trading terminal at `/trade/<symbol>`.
+ *   - Renders a loading skeleton when ticker data hasn't arrived yet.
+ *
+ * @example
+ *   <LiveTickerCard symbol="BTCUSDT" ticker={tickers['BTCUSDT']} />
+ */
+
 import type { TickerData } from '../context/LivePriceContext';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface Props {
+  /** Live ticker snapshot from the global WebSocket stream. */
   ticker?: TickerData;
+  /** Binance pair symbol, e.g. `"BTCUSDT"`. */
   symbol: string;
 }
 
 export function LiveTickerCard({ ticker, symbol }: Props) {
+  // ── Loading state: ticker data hasn't arrived from the WebSocket yet ──
   if (!ticker) {
     return (
       <div className="glass-panel p-5 rounded-2xl flex items-center justify-center animate-pulse h-[116px]">

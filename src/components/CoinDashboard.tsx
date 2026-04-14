@@ -1,3 +1,20 @@
+/**
+ * @file CoinDashboard.tsx
+ * @description Top Liquid Market ranking table combining CoinGecko metadata
+ * with live Binance WebSocket prices.
+ *
+ * On mount, fetches the top 20 coins by market cap from CoinGecko (cached).
+ * For each coin, the component maps the CoinGecko symbol to a Binance pair
+ * (`symbol.toUpperCase() + "USDT"`) and overlays the real-time WebSocket
+ * price when available.
+ *
+ * Each row includes:
+ *   - Rank number and coin icon (from CoinGecko CDN).
+ *   - Clickable asset name linking to the trading terminal.
+ *   - Live price from Binance (or CoinGecko fallback).
+ *   - Star toggle to add/remove the pair from the user's watchlist.
+ */
+
 import { useEffect, useState } from 'react';
 import { getTopCoins } from '../api/coingecko';
 import { useWatchlist } from '../context/WatchlistContext';

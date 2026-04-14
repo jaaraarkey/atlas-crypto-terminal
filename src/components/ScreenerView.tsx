@@ -1,8 +1,34 @@
+/**
+ * @file ScreenerView.tsx
+ * @description Advanced real-time market screener with toggleable filter conditions.
+ *
+ * The screener reads live ticker data from the global `LivePriceContext` and
+ * filters assets that match one or more user-selected conditions. Results
+ * update continuously as new WebSocket frames arrive.
+ *
+ * Available filter conditions:
+ *   - RSI Oversold (< 30)   — approximated via 24 h price change < -3%.
+ *   - RSI Overbought (> 70) — approximated via 24 h price change > +5%.
+ *   - MACD Bullish Cross     — approximated via moderate positive momentum.
+ *   - Unusual Volume (>200%) — assets with >$50 M quote volume.
+ *   - Nearing Major Support  — assets trading within ±1% of open.
+ *
+ * NOTE: These are simplified heuristics based on the 24 h ticker snapshot.
+ * For production-grade RSI/MACD, a background Web Worker streaming individual
+ * K-line data and computing rolling indicators would be required.
+ *
+ * UI features:
+ *   - Checkbox-style filter toggles with neon active indicators.
+ *   - Pause/Resume scanning button.
+ *   - Each matched asset links to its full trading terminal page.
+ */
+
 import { useState } from 'react';
 import { useLivePrice } from '../context/LivePriceContext';
 import { Activity, Zap, TrendingUp, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+/** Filter condition definitions — each maps to a simple heuristic in `getResults()`. */
 const FILTERS = [
   { id: 'rsi_oversold', label: 'RSI Oversold (< 30)', category: 'Momentum', icon: <Activity className="w-4 h-4 text-emerald-400" /> },
   { id: 'rsi_overbought', label: 'RSI Overbought (> 70)', category: 'Momentum', icon: <Activity className="w-4 h-4 text-rose-400" /> },
@@ -16,12 +42,15 @@ export function ScreenerView() {
   const { tickers } = useLivePrice();
   const [scanning, setScanning] = useState(true);
 
+  /** Toggle a filter condition on/off. */
   const toggleFilter = (id: string) => {
     setActiveFilters(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
   };
 
-  // Mock Screener Logic: Real-time technical oscillators require a web-worker background 
-  // stream of K-lines. We simulate the matching logic here based on current price velocity.
+  /**
+   * Evaluate all active tickers against the selected conditions.
+   * Returns up to 8 matching assets for display.
+   */
   const getResults = () => {
     if (activeFilters.length === 0 || !scanning) return [];
     
@@ -37,7 +66,7 @@ export function ScreenerView() {
       if (activeFilters.includes('sup_res') && priceChange > -1 && priceChange < 1) matches = true;
       
       return matches;
-    }).slice(0, 8); // Display top 8 real-time matches
+    }).slice(0, 8);
   };
 
   const results = getResults();
@@ -50,7 +79,7 @@ export function ScreenerView() {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Sidebar Filters */}
+        {/* Sidebar — filter condition checkboxes */}
         <div className="lg:col-span-1 glass-panel p-6 rounded-2xl h-fit">
           <div className="flex items-center justify-between mb-6 border-b border-[var(--border-glass)] pb-4">
             <h3 className="font-bold text-sm tracking-widest uppercase">Conditions</h3>
@@ -77,7 +106,7 @@ export function ScreenerView() {
           </div>
         </div>
 
-        {/* Results Area */}
+        {/* Results area — live match list */}
         <div className="lg:col-span-3 glass-panel p-6 rounded-2xl min-h-[500px] flex flex-col">
           <h3 className="font-bold text-sm tracking-widest uppercase text-[var(--text-secondary)] mb-6">Live Match Results</h3>
           

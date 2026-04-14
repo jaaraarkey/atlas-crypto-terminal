@@ -1,3 +1,25 @@
+/**
+ * @file CandlestickChart.tsx
+ * @description Interactive candlestick chart powered by TradingView's `lightweight-charts` v5.
+ *
+ * Data pipeline:
+ *   1. **Historical backfill** — On mount (and on every interval change), the component
+ *      fetches up to 1 000 historical K-lines from the Binance REST API
+ *      (`GET /api/v3/klines`) and seeds the chart via `setData()`.
+ *   2. **Live streaming** — A dedicated Binance WebSocket (`<symbol>@kline_<interval>`)
+ *      pushes real-time candle updates which are applied via `update()`, seamlessly
+ *      appending to the historical dataset.
+ *
+ * Supported intervals (matching exact Binance casing):
+ *   `1m`, `3m`, `5m`, `15m`, `1h`, `4h`, `1d`, `1w`, `1M`
+ *   Note: `1m` = 1 minute, `1M` = 1 month — casing is critical.
+ *
+ * Safety measures:
+ *   - `lastTimeRef` prevents out-of-order ticks from crashing the chart engine.
+ *   - All `update()` calls are wrapped in try/catch for graceful degradation.
+ *   - Switching intervals flushes chart data and resets the time guard.
+ */
+
 import { useEffect, useRef, useState } from 'react';
 import { createChart, ColorType, CandlestickSeries } from 'lightweight-charts';
 import type { ISeriesApi, UTCTimestamp } from 'lightweight-charts';
@@ -5,9 +27,14 @@ import useWebSocketBase from 'react-use-websocket';
 const useWebSocket = typeof useWebSocketBase === 'function' ? useWebSocketBase : (useWebSocketBase as any).default;
 
 interface Props {
+  /** Binance pair symbol, e.g. `"BTCUSDT"`. */
   symbol: string;
 }
 
+/**
+ * Available K-line intervals — these strings are sent directly to the
+ * Binance WebSocket and REST APIs so casing must match exactly.
+ */
 const INTERVALS = ['1m', '3m', '5m', '15m', '1h', '4h', '1d', '1w', '1M'];
 
 export function CandlestickChart({ symbol }: Props) {
@@ -17,13 +44,14 @@ export function CandlestickChart({ symbol }: Props) {
   
   const [interval, setInterval] = useState('1m');
   const wsUrl = `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${interval}`;
+  /** Tracks the most recent candle timestamp to reject out-of-order ticks. */
   const lastTimeRef = useRef<number>(0);
 
   const { lastJsonMessage } = useWebSocket(wsUrl, {
     shouldReconnect: () => true,
   });
 
-  // Init Chart
+  // ── Phase 1: Initialise the Lightweight Charts instance ──────────────
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
@@ -52,6 +80,8 @@ export function CandlestickChart({ symbol }: Props) {
 
     chartRef.current = chart;
 
+    // lightweight-charts v5 uses `addSeries(SeriesType, options)` instead of
+    // the deprecated `addCandlestickSeries(options)` from v4.
     const candlestickSeries = chart.addSeries(CandlestickSeries, {
       upColor: '#34d399',
       downColor: '#fb7185',
@@ -70,7 +100,7 @@ export function CandlestickChart({ symbol }: Props) {
     };
   }, []);
 
-  // Fetch Historical Data
+  // ── Phase 2: Fetch historical K-lines from Binance REST API ──────────
   useEffect(() => {
     let isMounted = true;
 
@@ -99,19 +129,20 @@ export function CandlestickChart({ symbol }: Props) {
       }
     };
 
-    // Delay slightly to ensure Lightweight Charts is fully mounted
+    // Delay slightly to ensure the chart DOM element is fully mounted
     setTimeout(fetchHistorical, 50);
 
     return () => { isMounted = false; };
   }, [symbol, interval]);
 
-  // Update Data from WS
+  // ── Phase 3: Apply live WebSocket candle ticks ───────────────────────
   useEffect(() => {
     if (lastJsonMessage && (lastJsonMessage as any).k) {
       const kline = (lastJsonMessage as any).k;
       const t = Math.floor(kline.t / 1000);
       
-      // Lightweight charts throws an error if we try to inject an older candle. 
+      // Reject out-of-order ticks — lightweight-charts requires strictly
+      // ascending timestamps, otherwise it throws a fatal error.
       if (t < lastTimeRef.current) return;
       lastTimeRef.current = t;
 
@@ -124,7 +155,6 @@ export function CandlestickChart({ symbol }: Props) {
       };
 
       if (candlestickSeriesRef.current) {
-        // Wrap in try catch to gracefully handle any deep library physics crashes
         try {
           candlestickSeriesRef.current.update(candle);
         } catch (error) {
@@ -144,9 +174,9 @@ export function CandlestickChart({ symbol }: Props) {
               key={int}
               onClick={() => {
                 setInterval(int);
-                lastTimeRef.current = 0; // Reset time check when changing intervals
+                lastTimeRef.current = 0; // Reset time guard for new interval
                 if (candlestickSeriesRef.current) {
-                  candlestickSeriesRef.current.setData([]); // Flush chart data
+                  candlestickSeriesRef.current.setData([]); // Flush stale data
                 }
               }}
               className={`px-3 py-1 text-xs font-bold rounded-full transition-all ${

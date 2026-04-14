@@ -1,3 +1,18 @@
+/**
+ * @file SymbolDetails.tsx
+ * @description Full-screen trading terminal page for a single asset.
+ *
+ * Accessed via the route `/trade/:symbol` (e.g. `/trade/BTCUSDT`).
+ * Composes the `<CandlestickChart>` and `<OrderbookView>` side by side
+ * in a responsive 3:1 grid, with a stats header pulled from the global
+ * `LivePriceContext`.
+ *
+ * Header stats:
+ *   - Current price (from live WS ticker).
+ *   - 24 h percentage change (coloured green/red).
+ *   - 24 h quote volume in USD millions.
+ */
+
 import { useParams, Link } from 'react-router-dom';
 import { CandlestickChart } from './CandlestickChart';
 import { OrderbookView } from './OrderbookView';
@@ -17,7 +32,7 @@ export function SymbolDetails() {
         <ArrowLeft className="w-4 h-4" /> Back to Dashboard
       </Link>
 
-      {/* Header */}
+      {/* Header — live stats bar */}
       <header className="flex items-end gap-6 glass-panel p-6 rounded-2xl">
         <div>
           <h1 className="text-4xl font-bold tracking-tight">{symbol.replace('USDT', '')} <span className="text-xl text-[var(--text-secondary)]">/ USDT</span></h1>
@@ -44,14 +59,12 @@ export function SymbolDetails() {
         )}
       </header>
 
-      {/* Terminal Grid */}
+      {/* Terminal Grid — chart (3/4 width) + orderbook (1/4 width) */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 w-full">
-        {/* Chart Area */}
         <div className="xl:col-span-3 min-h-[500px]">
           <CandlestickChart symbol={symbol} />
         </div>
         
-        {/* Orderbook Sidebar */}
         <div className="xl:col-span-1 h-[500px]">
           <OrderbookView symbol={symbol} />
         </div>

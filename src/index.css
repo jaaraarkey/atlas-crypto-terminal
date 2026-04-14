@@ -1,3 +1,20 @@
+/**
+ * @file index.css
+ * @description Global design-system tokens and utility classes for ATLAS.
+ *
+ * Architecture:
+ *   - Tailwind CSS v4 is imported via `@import "tailwindcss"`.
+ *   - Custom theme tokens are declared inside `@theme {}` and become
+ *     available as Tailwind utilities (e.g. `bg-teal-neon`).
+ *   - CSS custom properties in `:root` / `.dark` drive the adaptive
+ *     color palette — toggled by adding/removing the `dark` class on `<html>`.
+ *
+ * Custom utilities:
+ *   `.glass-panel` — Frosted-glass card with backdrop blur and subtle border.
+ *   `.text-neon`   — Teal neon glow text with double-layer text-shadow.
+ *   `.border-neon` — Teal neon glowing border with box-shadow.
+ */
+
 @import "tailwindcss";
 
 @theme {
@@ -7,6 +24,7 @@
 }
 
 @layer base {
+  /* ── Light mode palette (default) ──────────────────────────────────── */
   :root {
     --bg-primary: #f8fafc;
     --bg-secondary: #e2e8f0;
@@ -15,6 +33,7 @@
     --border-glass: rgba(0, 0, 0, 0.1);
   }
   
+  /* ── Dark mode palette ─────────────────────────────────────────────── */
   .dark {
     --bg-primary: #050b14;
     --bg-secondary: #0a1120;
@@ -31,6 +50,7 @@
 }
 
 @layer utilities {
+  /* ── Glassmorphism card ─────────────────────────────────────────────── */
   .glass-panel {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -44,11 +64,13 @@
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
   }
 
+  /* ── Neon text glow ─────────────────────────────────────────────────── */
   .text-neon {
     color: var(--color-teal-neon);
     text-shadow: 0 0 8px rgba(0, 240, 255, 0.8), 0 0 20px rgba(0, 240, 255, 0.4);
   }
   
+  /* ── Neon border glow ───────────────────────────────────────────────── */
   .border-neon {
     border-color: var(--color-teal-neon);
     box-shadow: 0 0 8px rgba(0, 240, 255, 0.3);

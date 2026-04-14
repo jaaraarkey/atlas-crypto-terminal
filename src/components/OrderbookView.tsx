@@ -1,20 +1,43 @@
+/**
+ * @file OrderbookView.tsx
+ * @description Real-time Level 2 orderbook depth visualisation.
+ *
+ * Subscribes to the Binance partial book depth stream
+ * (`<symbol>@depth20@100ms`) which pushes the top 20 bid and ask
+ * price levels every 100 ms.
+ *
+ * Visual design:
+ *   - Each row shows Price | Amount | Cumulative Total.
+ *   - A horizontal depth bar (green for bids, red for asks) fills
+ *     proportionally to `cumTotal / maxTotal`, giving a visual
+ *     "wall" representation similar to professional order books.
+ *   - Asks are rendered in descending order so the lowest ask sits
+ *     closest to the spread divider, matching standard market depth UIs.
+ *
+ * @see https://binance-docs.github.io/apidocs/spot/en/#partial-book-depth-streams
+ */
+
 import { useEffect, useState } from 'react';
 import useWebSocketBase from 'react-use-websocket';
 const useWebSocket = typeof useWebSocketBase === 'function' ? useWebSocketBase : (useWebSocketBase as any).default;
 
 interface Props {
+  /** Binance pair symbol, e.g. `"BTCUSDT"`. */
   symbol: string;
 }
 
+/** A single orderbook level with a running cumulative total. */
 interface Order {
   price: string;
   amount: string;
+  /** Cumulative volume from best price to this level. */
   total: number;
 }
 
 export function OrderbookView({ symbol }: Props) {
   const [bids, setBids] = useState<Order[]>([]);
   const [asks, setAsks] = useState<Order[]>([]);
+  /** The largest cumulative total across bids and asks — used to normalise depth bars. */
   const [maxTotal, setMaxTotal] = useState<number>(0);
 
   const wsUrl = `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@depth20@100ms`;
@@ -27,12 +50,14 @@ export function OrderbookView({ symbol }: Props) {
     if (lastJsonMessage && (lastJsonMessage as any).bids && (lastJsonMessage as any).asks) {
       const msg = lastJsonMessage as any;
       
+      // Build bid levels with running cumulative totals
       let runningBidTotal = 0;
       const parsedBids = msg.bids.slice(0, 15).map((b: string[]) => {
         runningBidTotal += parseFloat(b[1]);
         return { price: b[0], amount: b[1], total: runningBidTotal };
       });
 
+      // Build ask levels with running cumulative totals
       let runningAskTotal = 0;
       const parsedAsks = msg.asks.slice(0, 15).map((a: string[]) => {
         runningAskTotal += parseFloat(a[1]);
@@ -49,6 +74,11 @@ export function OrderbookView({ symbol }: Props) {
     }
   }, [lastJsonMessage]);
 
+  /**
+   * Renders a single orderbook row with a proportional depth-bar background.
+   * @param order - The price level to render.
+   * @param type  - `"bid"` (buy wall, green) or `"ask"` (sell wall, red).
+   */
   const renderRow = (order: Order, type: 'bid' | 'ask') => {
     const depthPercentage = maxTotal > 0 ? (order.total / maxTotal) * 100 : 0;
     const isBid = type === 'bid';
@@ -79,17 +109,17 @@ export function OrderbookView({ symbol }: Props) {
       </div>
 
       <div className="flex flex-col flex-1 gap-1">
-        {/* Asks (Sells) */}
+        {/* Asks (Sells) — highest price at top, lowest at bottom */}
         <div className="flex flex-col justify-end min-h-[150px]">
           {asks.map(a => renderRow(a, 'ask'))}
         </div>
 
-        {/* Spread Divider */}
+        {/* Spread divider */}
         <div className="flex items-center justify-center py-2 text-[10px] text-[var(--text-secondary)] tracking-widest bg-[var(--border-glass)]/20 my-1 rounded">
           Spread Data
         </div>
 
-        {/* Bids (Buys) */}
+        {/* Bids (Buys) — highest price at top, lowest at bottom */}
         <div className="flex flex-col justify-start min-h-[150px]">
           {bids.map(b => renderRow(b, 'bid'))}
         </div>
