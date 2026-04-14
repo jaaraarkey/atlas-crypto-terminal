@@ -89,3 +89,13 @@ export const getTopCoins = async (limit: number = 50) => {
 export const getCoinMetrics = async (coinId: string) => {
   return await fetchWithCache(`/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`);
 };
+
+/**
+ * Fetch global crypto market data (total market cap, volume, BTC dominance).
+ *
+ * @returns Global market data object.
+ * @see https://www.coingecko.com/api/documentation — `/global`
+ */
+export const getGlobalData = async () => {
+  return await fetchWithCache('/global', null);
+};

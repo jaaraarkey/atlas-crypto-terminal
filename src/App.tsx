@@ -21,43 +21,53 @@ import { LiveTickerCard } from './components/LiveTickerCard';
 import { CoinDashboard } from './components/CoinDashboard';
 import { SymbolDetails } from './components/SymbolDetails';
 import { ScreenerView } from './components/ScreenerView';
+import { MarketOverview } from './components/MarketOverview';
+import { TopMovers } from './components/TopMovers';
 
 /**
  * HomeDashboard — the landing page.
  *
- * Renders the user's watchlist as a responsive card grid, each card
- * streaming live prices from the global Binance WebSocket. Below the
- * cards sits the `<CoinDashboard>` table powered by CoinGecko REST data.
- *
- * A pulsating green dot in the header indicates the WebSocket connection
- * health (`"Open"` / `"Closed"`).
+ * Layout:
+ *   1. Market Overview (macro stats banner)
+ *   2. Top Movers (gainers / losers / most active)
+ *   3. Watchlist cards (user's favourites with live prices)
+ *   4. CoinDashboard table (CoinGecko rankings)
  */
 function HomeDashboard() {
   const { watchlist } = useWatchlist();
   const { tickers, connectionStatus } = useLivePrice();
 
   return (
-    <div className="px-6 py-10 h-full flex flex-col gap-8">
-      <header className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight mb-2">Live Watchlist</h2>
-          <p className="text-sm text-[var(--text-secondary)] hidden sm:block">Instantaneous streaming from Binance WebSockets</p>
+    <div className="px-6 py-8 h-full flex flex-col gap-6">
+      {/* Market Intelligence */}
+      <MarketOverview />
+
+      {/* Top Movers */}
+      <TopMovers />
+
+      {/* Watchlist */}
+      <div className="flex flex-col gap-5">
+        <header className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Watchlist</h2>
+            <p className="text-xs text-[var(--text-secondary)] hidden sm:block mt-1">Your tracked pairs — live from Binance WebSocket</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-3 w-3">
+               {connectionStatus === 'Open' && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-teal-neon)] opacity-75"></span>}
+               <span className={`relative inline-flex rounded-full h-3 w-3 ${connectionStatus === 'Open' ? 'bg-[var(--color-teal-neon)]' : 'bg-rose-500'}`}></span>
+            </span>
+            <span className="text-xs uppercase font-bold tracking-widest text-[var(--text-secondary)]">
+              {connectionStatus}
+            </span>
+          </div>
+        </header>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {watchlist.map(symbol => (
+            <LiveTickerCard key={symbol} symbol={symbol} ticker={tickers[symbol]} />
+          ))}
         </div>
-        <div className="flex items-center gap-2">
-          <span className="relative flex h-3 w-3">
-             {connectionStatus === 'Open' && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-teal-neon)] opacity-75"></span>}
-             <span className={`relative inline-flex rounded-full h-3 w-3 ${connectionStatus === 'Open' ? 'bg-[var(--color-teal-neon)]' : 'bg-rose-500'}`}></span>
-          </span>
-          <span className="text-xs uppercase font-bold tracking-widest text-[var(--text-secondary)]">
-            WS: {connectionStatus}
-          </span>
-        </div>
-      </header>
-      
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
-        {watchlist.map(symbol => (
-          <LiveTickerCard key={symbol} symbol={symbol} ticker={tickers[symbol]} />
-        ))}
       </div>
 
       <CoinDashboard />
